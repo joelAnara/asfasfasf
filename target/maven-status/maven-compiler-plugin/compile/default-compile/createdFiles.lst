@@ -1,0 +1,16 @@
+com\example\demo\service\QRCodeService.class
+com\example\demo\DemoApplication.class
+com\example\demo\entity\QRCodeEntity.class
+com\example\demo\service\AES256Service.class
+com\example\demo\config\StaticResourceConfig.class
+com\example\demo\service\FileStorageService.class
+com\example\demo\controller\WebController.class
+com\example\demo\controller\QRCodeController.class
+com\example\demo\repository\QRCodeRepository.class
+com\example\demo\dto\QRCodeDTO.class
+com\example\demo\controller\ProfilePageController.class
+com\example\demo\dto\VerificationResponse.class
+com\example\demo\controller\CryptoController.class
+com\example\demo\dto\EncryptionRequest.class
+com\example\demo\service\QRCodeReaderService.class
+com\example\demo\dto\EncryptionResponse.class
