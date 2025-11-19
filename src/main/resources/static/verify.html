@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Verificador de QR</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--c1:#00D9E1;--c2:#00B4BC;--c3:#008B94;--ok:#10B981;--err:#EF4444}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto; background:linear-gradient(135deg,#00D9E1,#008B94); min-height:100vh; padding:20px}
+    .container{max-width:1100px;margin:0 auto}
+    .header{color:#fff;text-align:center;margin-bottom:22px}
+    .header h1{font-size:2rem;margin-bottom:6px}
+    .badge{display:inline-block;background:rgba(255,255,255,.25);padding:6px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.3)}
+    .card{background:#fff;border-radius:18px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.12); margin-bottom:18px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .drop{border:3px dashed var(--c1);border-radius:14px;padding:26px;text-align:center;background:rgba(255,255,255,.7);cursor:pointer}
+    .btn{border:0;border-radius:10px;padding:14px 18px; color:#fff; font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--c1),var(--c2))}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .alert{padding:12px 14px;border-radius:10px;margin-bottom:14px}
+    .ok{background:#d1fae5;color:#065f46;border-left:4px solid #10b981}
+    .err{background:#fee2e2;color:#991b1b;border-left:4px solid #ef4444}
+    .info{background:#e0f2fe;color:#1e40af;border-left:4px solid #3b82f6}
+    .resultTitle{font-size:1.2rem;font-weight:800;margin:6px 0}
+    .decoded{font-family:Consolas,monospace;background:#f7f7f9;border:1px solid #e5e7eb;border-radius:8px;padding:10px;word-break:break-all}
+    .perfil{display:grid;grid-template-columns:150px 1fr; gap:14px; margin-top:12px; align-items:flex-start}
+    @media(max-width:700px){.perfil{grid-template-columns:1fr}}
+    .pic{width:150px;height:150px; border-radius:12px; object-fit:cover; background:#f3f4f6; border:1px solid #e5e7eb}
+    .row{display:flex; gap:10px; margin:6px 0}
+    .label{min-width:140px; font-weight:700; color:#0f172a}
+    .val{flex:1}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔍 Verificador de Código QR</h1>
+      <div class="badge">Público • Consulta contra Base de Datos</div>
+      <div style="margin-top:8px">
+        <a href="/admin/generate?password=admin123" style="color:#fff; text-decoration:underline">🔧 Acceso Administrador</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="alertBox" class="alert info">Sube una imagen de un QR para verificarlo.</div>
+      <div class="grid">
+        <div>
+          <div id="drop" class="drop" onclick="file.click()">
+            <div style="font-size:2rem">📷</div>
+            <div><strong>Haz clic o arrastra una imagen con QR</strong></div>
+            <div style="opacity:.8">Formatos: PNG, JPG, JPEG</div>
+            <button class="btn" style="margin-top:12px">Seleccionar</button>
+            <input id="file" type="file" accept="image/*" style="display:none" />
+          </div>
+          <div style="text-align:center; margin-top:12px">
+            <img id="preview" style="max-width:100%; max-height:260px; border-radius:12px; display:none; box-shadow:0 6px 18px rgba(0,0,0,.1)" alt="preview">
+          </div>
+          <div style="text-align:center; margin-top:12px">
+            <button id="btnVerify" class="btn" disabled>🔍 Verificar</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="resultTitle">Estado</div>
+          <div id="statusBox" class="alert info">Esperando imagen…</div>
+
+          <div class="resultTitle">Texto decodificado</div>
+          <div id="decodedBox" class="decoded">—</div>
+
+          <div id="perfilCard" class="card" style="margin-top:14px; display:none">
+            <div class="resultTitle">Datos del titular</div>
+            <div class="perfil">
+              <img id="p_foto" class="pic" alt="foto" onerror="this.style.display='none'">
+              <div>
+                <div class="row"><div class="label">Nombre</div><div class="val" id="p_nombre"></div></div>
+                <div class="row"><div class="label">Apellidos</div><div class="val" id="p_apellidos"></div></div>
+                <div class="row"><div class="label">CI</div><div class="val" id="p_ci"></div></div>
+                <div class="row"><div class="label">Fecha Nac.</div><div class="val" id="p_fnac"></div></div>
+                <div class="row"><div class="label">Cargo</div><div class="val" id="p_cargo"></div></div>
+                <div class="row"><div class="label">Registro</div><div class="val" id="p_registro"></div></div>
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <a id="perfilLink" target="_blank">➡️ Abrir perfil en pantalla completa</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="display:flex; gap:16px; flex-wrap:wrap">
+      <div><strong>QR en BD:</strong> <span id="statTotal">0</span></div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api/qr';
+    const qs = s => document.querySelector(s);
+
+    const setAlert = (msg, cls='info')=>{
+      const b = qs('#alertBox'); b.className = 'alert ' + cls; b.textContent = msg;
+    };
+    const setStatus = (msg, ok=null)=>{
+      const box = qs('#statusBox');
+      box.className = 'alert ' + (ok===true?'ok': ok===false?'err':'info');
+      box.textContent = msg;
+    };
+
+    const file = qs('#file');
+    const drop = qs('#drop');
+    const preview = qs('#preview');
+    const btnVerify = qs('#btnVerify');
+
+    // Drag&Drop
+    ;['dragenter','dragover'].forEach(ev=>{
+      drop.addEventListener(ev, e=>{
+        e.preventDefault(); e.stopPropagation(); drop.style.background='rgba(0,217,225,.15)';
+      });
+    });
+    ;['dragleave','drop'].forEach(ev=>{
+      drop.addEventListener(ev, e=>{
+        e.preventDefault(); e.stopPropagation(); drop.style.background='rgba(255,255,255,.7)';
+      });
+    });
+    drop.addEventListener('drop', e=>{
+      const f = e.dataTransfer.files?.[0]; if(!f) return;
+      file.files = e.dataTransfer.files; showPreview(f);
+    });
+
+    file.addEventListener('change', e=>{
+      const f = e.target.files?.[0]; if(!f) return;
+      showPreview(f);
+    });
+
+    const showPreview = (f)=>{
+      const r = new FileReader();
+      r.onload = e=>{
+        preview.src = e.target.result; preview.style.display='block';
+        btnVerify.disabled = false;
+        setAlert('Imagen cargada. Presiona Verificar.', 'info');
+        setStatus('Listo para verificar', null);
+        qs('#decodedBox').textContent = '—';
+        qs('#perfilCard').style.display = 'none';
+      };
+      r.readAsDataURL(f);
+    };
+
+    btnVerify.addEventListener('click', async ()=>{
+      const f = file.files?.[0]; if(!f){ setAlert('Selecciona una imagen primero', 'err'); return; }
+      try{
+        btnVerify.disabled = true; btnVerify.textContent = '⏳ Verificando...';
+        setStatus('Verificando en base de datos...', null);
+
+        const fd = new FormData(); fd.append('file', f);
+        const r = await fetch(`${API}/verify-from-image`, { method:'POST', body: fd });
+        const j = await r.json().catch(()=> ({}));
+
+        const display = j.encryptedText ? (j.encryptedText.length>140 ? j.encryptedText.slice(0,140)+'…' : j.encryptedText) : 'No disponible';
+        qs('#decodedBox').textContent = display;
+
+        if(!r.ok || j.success===false){
+          const msg = j.message || `Error ${r.status}`;
+          setStatus('QR no detectado o inválido', false);
+          setAlert(msg.replace(/\*\*(.*?)\*\*/g,'$1'), 'err');
+          qs('#perfilCard').style.display = 'none';
+          return;
+        }
+
+        if(j.exists){
+          setStatus('✅ QR válido — existe en la base de datos', true);
+          setAlert('QR verificado correctamente', 'ok');
+
+          if(j.hasPersonalData){
+            qs('#perfilCard').style.display = 'block';
+            qs('#p_nombre').textContent = j.nombre || '';
+            qs('#p_apellidos').textContent = j.apellidos || '';
+            qs('#p_ci').textContent = j.ci || '';
+            qs('#p_fnac').textContent = j.fechaNacimiento || '';
+            qs('#p_cargo').textContent = j.cargo || '';
+            qs('#p_registro').textContent = new Date().toLocaleString();
+
+            const foto = qs('#p_foto');
+            foto.src = j.fotoUrl || '';
+            foto.style.display = j.fotoUrl ? 'block' : 'none';
+
+            const link = qs('#perfilLink');
+            const url = `${window.location.origin}/perfil?e=${encodeURIComponent(j.encryptedText)}`;
+            link.href = url; link.textContent = `➡️ ${url}`;
+          }else{
+            qs('#perfilCard').style.display = 'none';
+          }
+        }else{
+          setStatus('❌ QR no encontrado', false);
+          setAlert(j.message || 'No existe el QR en la base de datos', 'err');
+          qs('#perfilCard').style.display = 'none';
+        }
+      }catch(e){
+        setStatus('Error durante la verificación', false);
+        setAlert(e.message || 'Error de red', 'err');
+        qs('#perfilCard').style.display = 'none';
+      }finally{
+        btnVerify.disabled = false; btnVerify.textContent = '🔍 Verificar';
+      }
+    });
+
+    // Stats
+    const loadStats = async()=>{
+      try{
+        const r = await fetch(`${API}/stats`);
+        const j = await r.json();
+        qs('#statTotal').textContent = j.totalGenerated ?? 0;
+      }catch(_){}
+    };
+    loadStats(); setInterval(loadStats, 30000);
+  </script>
+</body>
+</html>

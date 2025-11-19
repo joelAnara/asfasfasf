@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Perfil verificado</title>
+  <style>
+    body{font-family:Segoe UI,Tahoma,Arial,sans-serif;background:#f6fffe;margin:0;padding:20px}
+    .container{max-width:980px;margin:0 auto}
+    .card{background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,217,225,.25);padding:24px;margin-bottom:20px;border:2px solid #b7f6f9}
+    h1{margin:0 0 8px 0;color:#008b94}
+    .muted{color:#2b6e73}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    .full{grid-column:1/-1}
+    .label{font-weight:600;color:#0b6f74;margin-bottom:6px}
+    .value{background:#f0feff;border:1px solid #b7f6f9;border-radius:8px;padding:10px;word-break:break-all}
+    .photo{width:100%;max-width:260px;border-radius:12px;border:3px solid #00d9e1;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+    .ok{background:#ecfdf5;border-left:6px solid #10b981;padding:14px;border-radius:10px;margin:10px 0;color:#065f46}
+    .err{background:#fee2e2;border-left:6px solid #ef4444;padding:14px;border-radius:10px;margin:10px 0;color:#7f1d1d}
+    .btn{background:linear-gradient(135deg,#00d9e1,#00b4bc);color:#fff;border:none;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer}
+    .btn:hover{filter:brightness(1.05)}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width:768px){.row,.grid-2{grid-template-columns:1fr}}
+    .mono{font-family:"Courier New",monospace}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h1>Perfil verificado</h1>
+    <div class="muted">Consulta por <strong>encryptedText</strong> (AES-256-GCM)</div>
+  </div>
+
+  <div id="alertBox" class="card" style="display:none;"></div>
+
+  <div class="card">
+    <div class="grid-2">
+      <div>
+        <div class="label">EncryptedText</div>
+        <div id="encInput" class="value mono"></div>
+      </div>
+      <div style="display:flex;align-items:end;gap:10px">
+        <button class="btn" onclick="reconsultar()">🔎 Re-consultar</button>
+        <button class="btn" onclick="window.location.href='/verify.html'">⬅ Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultOk" class="card" style="display:none;">
+    <div class="ok">✅ QR VÁLIDO — Registro encontrado</div>
+    <div class="row">
+      <div>
+        <div class="label">Nombre(s)</div>
+        <div id="nombre" class="value"></div>
+      </div>
+      <div>
+        <div class="label">Apellidos</div>
+        <div id="apellidos" class="value"></div>
+      </div>
+      <div>
+        <div class="label">CI</div>
+        <div id="ci" class="value"></div>
+      </div>
+      <div>
+        <div class="label">Fecha de nacimiento</div>
+        <div id="fechaNacimiento" class="value"></div>
+      </div>
+      <div>
+        <div class="label">Cargo</div>
+        <div id="cargo" class="value"></div>
+      </div>
+      <div>
+        <div class="label">Foto</div>
+        <img id="fotoUrl" class="photo" alt="Foto" onerror="this.style.display='none'"/>
+      </div>
+      <div class="full">
+        <div class="label">Mensaje</div>
+        <div id="msgOk" class="value"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultNo" class="card" style="display:none;">
+    <div class="err">❌ QR NO ENCONTRADO — No existe en BD</div>
+    <div class="value" id="msgNo"></div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const encryptedText = params.get('e');
+
+  const encInput = document.getElementById('encInput');
+  const alertBox = document.getElementById('alertBox');
+
+  function showAlert(html, ok=true){
+    alertBox.style.display='block';
+    alertBox.innerHTML = ok
+      ? `<div class="ok">${html}</div>`
+      : `<div class="err">${html}</div>`;
+  }
+
+  async function consultar(encrypted) {
+    if (!encrypted) { showAlert('Agrega ?e=<encryptedText> a la URL', false); return; }
+    encInput.textContent = encrypted;
+
+    try {
+      const resp = await fetch('/api/qr/verify', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ encryptedText: encrypted })
+      });
+      if (!resp.ok) { showAlert('Error de servidor: '+(await resp.text()), false); return; }
+      const r = await resp.json();
+      render(r);
+    } catch (e) {
+      showAlert('Fallo de conexión: ' + e.message, false);
+    }
+  }
+
+  function render(r){
+    const ok = document.getElementById('resultOk');
+    const no = document.getElementById('resultNo');
+    ok.style.display='none'; no.style.display='none';
+
+    if (r && r.success && r.exists) {
+      ok.style.display='block';
+      document.getElementById('nombre').textContent = r.nombre || '—';
+      document.getElementById('apellidos').textContent = r.apellidos || '—';
+      document.getElementById('ci').textContent = r.ci || '—';
+      document.getElementById('fechaNacimiento').textContent = r.fechaNacimiento || '—';
+      document.getElementById('cargo').textContent = r.cargo || '—';
+      document.getElementById('msgOk').textContent = r.message || '';
+
+      const foto = document.getElementById('fotoUrl');
+      if (r.fotoUrl) { foto.src = r.fotoUrl; foto.style.display='block'; }
+      else { foto.style.display='none'; }
+
+      showAlert('Consulta completada: registro válido.', true);
+    } else {
+      no.style.display='block';
+      document.getElementById('msgNo').textContent = (r && r.message) ? r.message : 'Sin detalle';
+      showAlert('No se encontró el registro indicado.', false);
+    }
+  }
+
+  function reconsultar(){ consultar(encInput.textContent.trim()); }
+  window.addEventListener('DOMContentLoaded', ()=> consultar(encryptedText));
+</script>
+</body>
+</html>

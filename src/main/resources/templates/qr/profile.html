@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Navidar 2025 · Credencial</title>
+  <style>
+    :root{
+      --c1:#00D9E1;
+      --c2:#00B4BC;
+      --c3:#008B94;
+      --bg:#020617;
+      --card:#111827;
+      --border:#1f2937;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --ok:#10B981;
+      --err:#EF4444;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      min-height:100vh;
+      background:radial-gradient(circle at top,#00D9E1 0,#0f172a 40%,#020617 100%);
+      color:var(--text);
+      padding:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow-x:hidden;          /* ✅ permitimos scroll vertical en móviles */
+      overflow-y:auto;
+      position:relative;
+    }
+
+    .glow-layer{
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(circle at 8% 0%,rgba(0,217,225,.22),transparent 55%),
+        radial-gradient(circle at 100% 10%,rgba(59,130,246,.22),transparent 60%),
+        radial-gradient(circle at 0% 85%,rgba(34,197,94,.18),transparent 55%);
+      pointer-events:none;
+      opacity:.95;
+      z-index:-3;
+    }
+
+    .snow-layer{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      overflow:hidden;
+      z-index:-2;
+    }
+    .snowflake{
+      position:absolute;
+      top:-10vh;
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:rgba(248,250,252,.96);
+      box-shadow:0 0 8px rgba(248,250,252,.8);
+      animation-name:fall;
+      animation-timing-function:linear;
+      animation-iteration-count:infinite;
+    }
+    @keyframes fall{
+      0%{transform:translate3d(0,0,0);}
+      100%{transform:translate3d(20px,110vh,0);}
+    }
+
+    .wrap{
+      width:100%;
+      max-width:900px;
+      position:relative;
+      z-index:1;
+    }
+
+    .card{
+      background:linear-gradient(135deg,rgba(15,23,42,.98),rgba(15,23,42,.94));
+      border-radius:24px;
+      border:1px solid rgba(148,163,184,.25);
+      box-shadow:0 24px 80px rgba(15,23,42,.95);
+      padding:24px 24px 18px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background:
+        radial-gradient(circle at 0 0,rgba(0,217,225,.25) 0,transparent 55%),
+        radial-gradient(circle at 100% 100%,rgba(0,180,188,.20) 0,transparent 60%);
+      opacity:.8;
+      pointer-events:none;
+    }
+
+    .card-inner{
+      position:relative;
+      z-index:1;
+    }
+
+    /* HEADER */
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:18px;
+      gap:12px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .brand-pill-img{
+      width:70px;
+      height:70px;
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow:0 0 0 2px rgba(255,255,255,.15),
+                  0 12px 25px rgba(0,0,0,.55);
+      background:#0f172a;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+    }
+
+    .brand-pill-img img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .brand-text-title{
+      font-size:18px;
+      font-weight:800;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      background:linear-gradient(135deg,#e0f2fe,#a5f3fc,#f9fafb);
+      -webkit-background-clip:text;
+      color:transparent;
+    }
+
+    .brand-text-sub{
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    .event-subline{
+      font-size:11px;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      color:#bae6fd;
+      margin-top:2px;
+    }
+
+    .badge{
+      padding:6px 14px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.5);
+      background:rgba(15,23,42,.8);
+      font-size:11px;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:var(--muted);
+      display:flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+      flex-shrink:0;
+    }
+
+    .badge span.icon{
+      font-size:14px;
+    }
+
+    /* BODY */
+    .body{
+      display:grid;
+      grid-template-columns:260px 1fr;
+      gap:22px;
+      margin-top:6px;
+    }
+
+    .photo-wrap{
+      background:radial-gradient(circle at 10% 0,rgba(0,217,225,.18),transparent 55%);
+      border-radius:18px;
+      border:1px solid rgba(30,64,175,.5);
+      padding:10px;
+      text-align:center;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:space-between;
+      min-height:280px;
+    }
+
+    .photo{
+      width:190px;
+      height:190px;
+      border-radius:18px;
+      object-fit:cover;
+      border:2px solid rgba(148,163,184,.8);
+      box-shadow:0 18px 40px rgba(15,23,42,.9);
+      background:#020617;
+    }
+
+    .photo-placeholder{
+      width:190px;
+      height:190px;
+      border-radius:18px;
+      border:1px dashed rgba(148,163,184,.7);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      font-size:12px;
+      background:rgba(15,23,42,.8);
+    }
+
+    .photo-label{
+      margin-top:10px;
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    .fields{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px 18px;
+    }
+
+    .field{
+      min-width:0;
+    }
+
+    .field-label{
+      font-size:11px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+
+    .field-value{
+      font-size:16px;
+      font-weight:500;
+      color:#f9fafb;
+      padding:8px 10px;
+      border-radius:10px;
+      background:linear-gradient(135deg,rgba(15,23,42,.9),rgba(15,23,42,.6));
+      border:1px solid rgba(55,65,81,.9);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .field-value.muted{
+      color:#9ca3af;
+      font-size:12px;
+      font-weight:400;
+      white-space:normal;
+      word-break:break-all;
+    }
+
+    .status{
+      margin-top:16px;
+      padding:10px 12px;
+      border-radius:12px;
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      font-size:13px;
+    }
+
+    .status-ok{
+      background:rgba(16,185,129,.12);
+      border:1px solid rgba(16,185,129,.6);
+      color:#a7f3d0;
+    }
+
+    .status-err{
+      background:rgba(239,68,68,.12);
+      border:1px solid rgba(239,68,68,.7);
+      color:#fecaca;
+    }
+
+    .status-icon{
+      font-size:18px;
+      line-height:1;
+      margin-top:-1px;
+    }
+
+    .status-text{
+      flex:1;
+    }
+
+    .footer{
+      margin-top:16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      font-size:11px;
+      color:var(--muted);
+    }
+
+    .btns{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      border-radius:999px;
+      border:none;
+      padding:7px 14px;
+      font-size:12px;
+      font-weight:600;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:linear-gradient(135deg,var(--c1),var(--c2));
+      color:#0f172a;
+      box-shadow:0 10px 25px rgba(0,0,0,.6);
+    }
+
+    .btn.secondary{
+      background:transparent;
+      color:var(--muted);
+      border:1px solid rgba(148,163,184,.5);
+      box-shadow:none;
+    }
+
+    .btn:hover{
+      filter:brightness(1.05);
+    }
+
+    /* ======================
+       RESPONSIVE
+       ====================== */
+
+    /* Tablets / pantallas medias */
+    @media (max-width:900px){
+      body{
+        padding:14px;
+      }
+      .card{
+        padding:18px 18px 14px;
+        border-radius:20px;
+      }
+      .field-value{
+        font-size:15px;
+      }
+    }
+
+    /* Móviles */
+    @media (max-width:640px){
+      body{
+        padding:10px;
+        align-items:flex-start;
+      }
+      .wrap{
+        max-width:100%;
+      }
+      .card{
+        margin:10px 0;
+        padding:16px 14px 14px;
+        border-radius:18px;
+      }
+      .header{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:10px;
+      }
+      .brand{
+        align-items:flex-start;
+      }
+      .brand-pill-img{
+        width:56px;
+        height:56px;
+      }
+      .brand-text-title{
+        font-size:16px;
+      }
+      .event-subline{
+        font-size:10px;
+      }
+      .brand-text-sub{
+        font-size:11px;
+      }
+      .badge{
+        align-self:flex-start;
+      }
+      .body{
+        grid-template-columns:1fr;
+        gap:16px;
+      }
+      .photo-wrap{
+        width:100%;
+        max-width:260px;
+        margin:0 auto;
+        min-height:auto;
+      }
+      .photo,
+      .photo-placeholder{
+        width:100%;
+        height:auto;
+        max-height:260px;
+      }
+      .fields{
+        grid-template-columns:1fr;
+        gap:10px;
+      }
+      .field-value{
+        font-size:14px;
+      }
+      .status{
+        font-size:12px;
+      }
+      .footer{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .btns{
+        width:100%;
+      }
+      .btn,
+      .btn.secondary{
+        flex:1;
+        justify-content:center;
+      }
+    }
+
+    /* Móviles muy pequeños */
+    @media (max-width:400px){
+      .brand-text-title{
+        font-size:15px;
+        letter-spacing:.03em;
+      }
+      .card{
+        padding:14px 10px 12px;
+      }
+      .field-label{
+        font-size:10px;
+      }
+      .field-value{
+        font-size:13px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="glow-layer"></div>
+<div class="snow-layer" id="snow-layer"></div>
+
+<div class="wrap">
+  <div class="card">
+    <div class="card-inner">
+
+      <!-- HEADER -->
+      <div class="header">
+        <div class="brand">
+          <div class="brand-pill-img">
+            <img src="/img/navidar-logo.png" alt="NAVIDAR" />
+          </div>
+          <div>
+            <div class="brand-text-title">NAVIDAR 2025</div>
+            <div class="event-subline">para la gente en situación de calle</div>
+            <div class="brand-text-sub">3000 PICANAS · Credencial digital</div>
+          </div>
+        </div>
+
+        <div class="badge" th:if="${found}">
+          <span class="icon">✅</span>
+          <span>QR verificado</span>
+        </div>
+        <div class="badge" th:if="${!found}">
+          <span class="icon">⚠️</span>
+          <span>QR inválido</span>
+        </div>
+      </div>
+
+      <!-- CONTENIDO CUANDO SE ENCUENTRA REGISTRO -->
+      <div th:if="${found}" class="body">
+        <!-- FOTO -->
+        <div class="photo-wrap">
+          <div th:if="${fotoUrl != null and fotoUrl != ''}">
+            <img th:src="${fotoUrl}" alt="Foto del titular" class="photo"
+                 onerror="this.style.display='none'">
+          </div>
+          <div th:if="${fotoUrl == null or fotoUrl == ''}" class="photo-placeholder">
+            Sin fotografía registrada
+          </div>
+          <div class="photo-label">Titular · Voluntariado</div>
+        </div>
+
+        <!-- DATOS -->
+        <div>
+          <div class="fields">
+
+            <div class="field">
+              <div class="field-label">Nombre</div>
+              <div class="field-value" th:text="${nombre != '' ? nombre : '—'}"></div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Apellidos</div>
+              <div class="field-value" th:text="${apellidos != '' ? apellidos : '—'}"></div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Documento (CI)</div>
+              <div class="field-value" th:text="${ci != '' ? ci : '—'}"></div>
+            </div>
+
+            <!-- Departamento -->
+            <div class="field">
+              <div class="field-label">Departamento</div>
+              <div class="field-value"
+                   th:text="${departamento != null && departamento != '' ? departamento : '—'}"></div>
+            </div>
+
+            <!-- Área de voluntariado -->
+            <div class="field">
+              <div class="field-label">Área de voluntariado</div>
+              <div class="field-value"
+                   th:text="${areaVoluntariado != null && areaVoluntariado != '' ? areaVoluntariado : '—'}"></div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Fecha de nacimiento</div>
+              <div class="field-value" th:text="${fechaNacimiento != '' ? fechaNacimiento : '—'}"></div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Token de verificación</div>
+              <div class="field-value muted" th:text="${encryptedText}"></div>
+            </div>
+
+          </div>
+
+          <div class="status status-ok">
+            <div class="status-icon">🛡️</div>
+            <div class="status-text" th:text="${message}">
+              QR válido — datos verificados contra la base de datos.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTENIDO CUANDO NO SE ENCUENTRA REGISTRO -->
+      <div th:if="${!found}">
+        <div class="status status-err">
+          <div class="status-icon">⛔</div>
+          <div class="status-text" th:text="${message}">
+            QR no válido o no registrado.
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:13px;color:var(--muted);">
+          Si crees que se trata de un error, vuelve a escanear el código QR o contacta con soporte técnico.
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--muted);word-wrap:break-word;">
+          <strong>Token recibido:</strong>
+          <span th:text="${encryptedText}"></span>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="footer">
+        <div>
+          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">
+            Sistema de verificación QR · Navidar 2025
+          </div>
+          <div style="font-size:11px;color:var(--muted);opacity:.8;">
+            Este documento es válido solo si fue obtenido mediante lectura directa del código QR.
+          </div>
+        </div>
+        <div class="btns">
+          <button type="button" class="btn" onclick="window.print()">
+            🖨 Imprimir
+          </button>
+          <button type="button" class="btn secondary" onclick="window.close()">
+            ✕ Cerrar
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Copos de nieve dinámicos
+  (function(){
+    const layer = document.getElementById('snow-layer');
+    if(!layer) return;
+    const flakeCount = 70;
+    for(let i=0;i<flakeCount;i++){
+      const f = document.createElement('div');
+      f.className = 'snowflake';
+      const delay = (Math.random()*12).toFixed(2);
+      const duration = (10 + Math.random()*12).toFixed(2);
+      const left = (Math.random()*100).toFixed(2);
+      const scale = (0.4 + Math.random()*0.9).toFixed(2);
+      f.style.left = left + 'vw';
+      f.style.animationDelay = delay + 's';
+      f.style.animationDuration = duration + 's';
+      f.style.opacity = (0.25 + Math.random()*0.65).toFixed(2);
+      f.style.transform = 'scale(' + scale + ')';
+      layer.appendChild(f);
+    }
+  })();
+</script>
+</body>
+</html>
